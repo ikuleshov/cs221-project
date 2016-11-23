@@ -7,11 +7,11 @@ from os import listdir
 from os.path import isfile, join
 from PIL import Image
 
-labels_dir = '/Users/vaibhavg/Desktop/Stanford/AI/Project/Dataset/training/bp_labels/'
-gb_dir = '/Users/vaibhavg/Desktop/Stanford/AI/Project/Dataset/training/input_bp/'
+labels_dir = '/Users/vaibhavg/Desktop/Stanford/AI/Project/Dataset/training2/data/source/'
+gb_dir = '/Users/vaibhavg/Desktop/Stanford/AI/Project/Dataset/training2/data/blurred/'
 
+image_width = 64
 label_width = 64
-image_width = 256
 
 def extract_images(folder, num_training, num_test):
     """Extract the images into a 4D uint8 numpy array [index, y, x, depth]."""
@@ -43,7 +43,11 @@ class DataSet(object):
     def _processSingleImage(self, path, resize = None, mode = 'RGB', label = False):
         img = misc.imread(path)
         if resize is not None:
-            img = misc.imresize(img, resize, mode=mode)
+            size = resize[0] / 2
+            left = (img.shape[0] / 2) - size
+            right = (img.shape[0] / 2) + size
+            img = img[left:right, left:right]
+            #img = misc.imresize(img, resize, mode=mode)
 #         if label:
 #             misc.imsave('/Users/vaibhavg/Desktop/Stanford/AI/Project/Dataset/training/output/bar'+".jpeg", img)
 #             im2 = Image.fromarray(img, 'RGB')
@@ -58,7 +62,7 @@ class DataSet(object):
         # Convert shape from [num examples, rows, columns, depth]
         # to [num examples, rows*columns*depth]
         if label:
-            img = img.reshape(1, img.shape[0] * img.shape[1])
+            img = img.reshape(1, img.shape[0] * img.shape[1] * img.shape[2])
             #img = img.reshape(1, img.shape[0] * img.shape[1] * img.shape[2])
 #             img2 = img.reshape(256, 256, 3)
 #             misc.imsave('/Users/vaibhavg/Desktop/Stanford/AI/Project/Dataset/training/output/bar3'+".jpeg", img2)
@@ -114,7 +118,7 @@ class DataSet(object):
         for name in self._images[start:end]:
             path = join(gb_dir, name)
             #print 'Processing ' + path
-            img = self._processSingleImage(path, None)
+            img = self._processSingleImage(path, (image_width, image_width))
             if images is None:
                 images = img
             else:
@@ -122,7 +126,7 @@ class DataSet(object):
         for name in self._labels[start:end]:
             path = join(labels_dir, name)
             #print 'Processing ' + path
-            lbl = self._processSingleImage(path, (label_width, label_width), mode='L', label = True)
+            lbl = self._processSingleImage(path, (label_width, label_width), mode='RGB', label = True)
             if labels is None:
                 labels = lbl
             else:
@@ -137,8 +141,8 @@ def read_data_sets():
     class DataSets(object):
         pass
     data_sets = DataSets()
-    (train_images, test_images) = extract_images(gb_dir, 1300, 10)
-    (train_labels, test_labels) = extract_images(labels_dir, 1300, 10)
+    (train_images, test_images) = extract_images(gb_dir, 5000, 10)
+    (train_labels, test_labels) = extract_images(labels_dir, 5000, 10)
 
     data_sets.train = DataSet(train_images, train_labels)
     data_sets.test = DataSet(test_images, test_labels)
